@@ -843,6 +843,88 @@ canvas:not(#donutChart) {
     min-width: 0;
   }
 }
+
+/* ── Management Section ─────────────────────────────── */
+.section-divider {
+  display: flex; align-items: center; gap: 16px;
+  margin: 36px 0 24px;
+}
+.section-divider::before, .section-divider::after {
+  content: ''; flex: 1; height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(57,198,184,.3), transparent);
+}
+.section-divider h2 {
+  font-size: 13px; font-weight: 700; letter-spacing: .14em;
+  text-transform: uppercase; color: var(--accent);
+  white-space: nowrap;
+}
+
+.mgmt-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-bottom: 18px; }
+
+.cmd-junction {
+  display: flex; align-items: center; gap: 14px;
+  padding: 14px; border-radius: 8px;
+  border: 1px solid rgba(147,164,181,.14);
+  background: rgba(11,15,20,.38);
+  transition: border-color .2s, transform .15s;
+}
+.cmd-junction:hover { border-color: rgba(57,198,184,.4); transform: translateY(-1px); }
+
+.cmd-junction .junc-id {
+  width: 42px; height: 42px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--mono); font-size: 14px; font-weight: 700;
+  flex-shrink: 0;
+}
+.cmd-junction .junc-id.low    { background: rgba(66,201,131,.16); color: var(--green); }
+.cmd-junction .junc-id.medium { background: rgba(244,183,64,.16); color: var(--accent3); }
+.cmd-junction .junc-id.high   { background: rgba(239,106,103,.16); color: var(--accent2); }
+
+.cmd-junction .junc-info { flex: 1; min-width: 0; }
+.cmd-junction .junc-name { font-size: 13px; font-weight: 600; margin-bottom: 3px; }
+.cmd-junction .junc-meta { font-family: var(--mono); font-size: 10px; color: var(--muted); }
+
+.cmd-junction .junc-action {
+  padding: 4px 10px; border-radius: 999px;
+  font-family: var(--mono); font-size: 10px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .06em; flex-shrink: 0;
+}
+.junc-action.Normal  { background: rgba(66,201,131,.14); color: var(--green); }
+.junc-action.Extend  { background: rgba(244,183,64,.14); color: var(--accent3); }
+.junc-action.Extend\\+ { background: rgba(239,106,103,.14); color: var(--accent2); }
+.junc-action.Reduce  { background: rgba(57,198,184,.14); color: var(--accent); }
+.junc-action.Reroute { background: rgba(239,106,103,.2); color: var(--accent2); }
+
+.rl-stats-row { display: grid; grid-template-columns: repeat(4,1fr); gap: 14px; margin-bottom: 18px; }
+.rl-stat { padding: 16px; border-radius: 8px; border: 1px solid rgba(147,164,181,.14); background: rgba(11,15,20,.38); }
+.rl-stat .rl-stat-label { font-family: var(--mono); font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .1em; margin-bottom: 8px; }
+.rl-stat .rl-stat-value { font-size: 26px; font-weight: 800; }
+.rl-stat .rl-stat-sub { font-family: var(--mono); font-size: 10px; color: var(--muted); margin-top: 4px; }
+
+#policy-heatmap-grid {
+  display: grid; grid-template-columns: 40px repeat(7,1fr); gap: 3px;
+  font-family: var(--mono); font-size: 9px; min-width: 760px;
+}
+
+.rl-result-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px; }
+.rl-result-card {
+  padding: 12px; border-radius: 8px;
+  border: 1px solid rgba(147,164,181,.14);
+  background: rgba(11,15,20,.32);
+}
+.rl-result-card .key { font-family: var(--mono); font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 6px; }
+.rl-result-card .val { font-family: var(--mono); font-size: 16px; font-weight: 700; }
+
+.phase-bar { display: flex; height: 10px; border-radius: 999px; overflow: hidden; margin-top: 8px; }
+.phase-bar .green-phase { background: var(--green); }
+.phase-bar .amber-phase { background: var(--accent3); }
+.phase-bar .red-phase { background: var(--accent2); }
+
+@media (max-width: 900px) {
+  .mgmt-grid { grid-template-columns: 1fr; }
+  .rl-stats-row { grid-template-columns: 1fr 1fr; }
+  .rl-result-row { grid-template-columns: 1fr; }
+}
 </style>
 </head>
 <body>
@@ -928,7 +1010,17 @@ canvas:not(#donutChart) {
         <div class="result-box" id="result-box">
           <div class="result-metric"><span class="key">Predicted Vehicles</span><span class="val" id="r-vehicles">—</span></div>
           <div class="result-metric"><span class="key">Congestion Level</span><span class="val" id="r-congestion">—</span></div>
-          <div class="result-metric"><span class="key">Recommended Signal Time</span><span class="val" id="r-signal">—</span></div>
+          <div class="result-metric"><span class="key">Rule-Based Signal</span><span class="val" id="r-signal">—</span></div>
+        </div>
+        <div class="rl-result-row" id="rl-result-row" style="display:none">
+          <div class="rl-result-card"><div class="key">RL Optimal Signal</div><div class="val" id="r-rl-signal">—</div></div>
+          <div class="rl-result-card"><div class="key">Management Action</div><div class="val" id="r-rl-action">—</div></div>
+          <div class="rl-result-card"><div class="key">Priority Score</div><div class="val" id="r-rl-priority">—</div></div>
+          <div class="rl-result-card">
+            <div class="key">Phase Allocation</div>
+            <div class="phase-bar" id="r-phase-bar"></div>
+            <div style="font-family:var(--mono);font-size:9px;color:var(--muted);margin-top:4px" id="r-phase-label"></div>
+          </div>
         </div>
         </div>
       </div>
@@ -1016,13 +1108,65 @@ canvas:not(#donutChart) {
     </div>
   </div>
 
+  <!-- ═══ MANAGEMENT SECTION ═══ -->
+  <div class="section-divider"><h2>🤖 RL Traffic Management — Adaptive Signal Control</h2></div>
+
+  <!-- RL Performance Stats -->
+  <div class="rl-stats-row" id="rl-stats-row">
+    <div class="rl-stat"><div class="rl-stat-label">Episodes Trained</div><div class="rl-stat-value" id="rl-episodes">—</div><div class="rl-stat-sub">Q-learning iterations</div></div>
+    <div class="rl-stat"><div class="rl-stat-label">Convergence</div><div class="rl-stat-value" id="rl-converged">—</div><div class="rl-stat-sub">Episode of stabilisation</div></div>
+    <div class="rl-stat"><div class="rl-stat-label">Signal Efficiency</div><div class="rl-stat-value" id="rl-efficiency">—</div><div class="rl-stat-sub">vs rule-based baseline</div></div>
+    <div class="rl-stat"><div class="rl-stat-label">Avg Reward (Last 50)</div><div class="rl-stat-value" id="rl-reward">—</div><div class="rl-stat-sub">Higher is better</div></div>
+  </div>
+
+  <!-- Command Center + Comparison Chart -->
+  <div class="mgmt-grid">
+    <div class="panel">
+      <div class="panel-title">Management Command Center</div>
+      <div id="cmd-center" style="display:grid;gap:10px"><!-- filled by JS --></div>
+    </div>
+    <div class="panel">
+      <div class="panel-title">RL vs Rule-Based Signal Timing</div>
+      <canvas id="comparisonChart" height="260"></canvas>
+    </div>
+  </div>
+
+  <!-- Policy Heatmap + Training Reward -->
+  <div class="mgmt-grid">
+    <div class="panel">
+      <div class="panel-title" style="justify-content:space-between;display:flex;flex-wrap:wrap;gap:8px;align-items:center">
+        <span style="display:flex;gap:8px;align-items:center"><span style="width:4px;height:16px;border-radius:2px;background:var(--accent);display:inline-block"></span>RL Signal Policy Heatmap</span>
+        <select id="policy-junc-select" style="width:auto;padding:5px 8px;font-size:11px" onchange="loadPolicyHeatmap()">
+          <option value="1">Junction 1</option><option value="2">Junction 2</option>
+          <option value="3">Junction 3</option><option value="4">Junction 4</option>
+        </select>
+      </div>
+      <div style="overflow-x:auto"><div id="policy-heatmap-grid"></div></div>
+      <div style="display:flex;align-items:center;gap:8px;margin-top:12px">
+        <span style="font-family:var(--mono);font-size:10px;color:var(--muted)">15s</span>
+        <div style="display:flex;gap:3px">
+          <div style="width:20px;height:10px;border-radius:2px;background:rgba(57,198,184,.5)"></div>
+          <div style="width:20px;height:10px;border-radius:2px;background:rgba(57,198,184,.8)"></div>
+          <div style="width:20px;height:10px;border-radius:2px;background:rgba(66,201,131,.7)"></div>
+          <div style="width:20px;height:10px;border-radius:2px;background:rgba(244,183,64,.7)"></div>
+          <div style="width:20px;height:10px;border-radius:2px;background:rgba(239,106,103,.7)"></div>
+        </div>
+        <span style="font-family:var(--mono);font-size:10px;color:var(--muted)">70s</span>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-title">Training Reward Convergence</div>
+      <canvas id="rewardChart" height="260"></canvas>
+    </div>
+  </div>
+
 </main>
 
 <script>
 const API = "/api";
 const DAYS = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
 
-let lineChart, barChart, donutChart;
+let lineChart, barChart, donutChart, comparisonChart, rewardChart;
 
 function updateHourLabel(v) {
   document.getElementById('p-hour-val').textContent = v;
@@ -1256,7 +1400,7 @@ async function predict() {
     });
     const d = await r.json();
     document.getElementById('r-vehicles').textContent   = d.predicted_vehicles + ' vehicles';
-    document.getElementById('r-signal').textContent     = d.signal_time_seconds + ' seconds';
+    document.getElementById('r-signal').textContent     = d.signal_time_seconds + 's (rule)';
     const cEl = document.getElementById('r-congestion');
     cEl.innerHTML = `<span class="badge ${d.congestion_level}">${d.congestion_level}</span>`;
     const activeNode = document.querySelector(`.junction-node[data-junction="${payload.junction}"]`);
@@ -1266,6 +1410,24 @@ async function predict() {
       if (d.congestion_level === 'High') activeNode.classList.add('high');
     }
     document.getElementById('result-box').classList.add('visible');
+
+    // RL recommendation display
+    if (d.rl_recommendation) {
+      const rl = d.rl_recommendation;
+      document.getElementById('r-rl-signal').textContent = rl.optimal_signal_seconds + 's';
+      document.getElementById('r-rl-action').innerHTML = `<span class="junc-action ${rl.management_action}">${rl.action_label}</span>`;
+      document.getElementById('r-rl-priority').textContent = rl.priority_score + ' / 100';
+      const pa = rl.phase_allocation;
+      const totalCycle = pa.cycle_seconds;
+      const gPct = (rl.optimal_signal_seconds / totalCycle * 100).toFixed(0);
+      const aPct = (pa.amber_seconds / totalCycle * 100).toFixed(0);
+      const rPct = Math.max(0, 100 - gPct - aPct);
+      document.getElementById('r-phase-bar').innerHTML =
+        `<div class="green-phase" style="width:${gPct}%"></div><div class="amber-phase" style="width:${aPct}%"></div><div class="red-phase" style="width:${rPct}%"></div>`;
+      document.getElementById('r-phase-label').textContent =
+        `G ${rl.optimal_signal_seconds}s · A ${pa.amber_seconds}s · R ${pa.red_seconds}s (cycle ${pa.cycle_seconds}s)`;
+      document.getElementById('rl-result-row').style.display = 'grid';
+    }
   } catch(e) {
     alert('Backend not reachable. Please try again in a moment.');
   } finally {
@@ -1293,12 +1455,150 @@ function chartOpts(yLabel) {
   };
 }
 
+// ── Management: Command Center ───────────────────────
+async function loadManagementStatus() {
+  try {
+    const r = await fetch(`${API}/management/status`);
+    const d = await r.json();
+    const tm = d.training_metrics;
+    document.getElementById('rl-episodes').textContent = tm.episodes;
+    document.getElementById('rl-converged').textContent = 'Ep ' + tm.converged_at;
+    document.getElementById('rl-reward').textContent = tm.avg_reward_last_50;
+
+    const center = document.getElementById('cmd-center');
+    const juncNames = ['City Core', 'Market Road', 'Ring Road', 'Bypass'];
+    center.innerHTML = d.junctions.map(j => {
+      const cl = j.congestion_level.toLowerCase();
+      return `<div class="cmd-junction">
+        <div class="junc-id ${cl}">J${j.junction}</div>
+        <div class="junc-info">
+          <div class="junc-name">Junction ${j.junction} — ${juncNames[j.junction-1]}</div>
+          <div class="junc-meta">${j.predicted_vehicles} veh · ${j.optimal_signal_seconds}s signal · P${j.priority_score}</div>
+        </div>
+        <div class="junc-action ${j.management_action}">${j.management_action}</div>
+      </div>`;
+    }).join('');
+
+    // Load reward chart
+    loadRewardChart(tm.reward_history_sample);
+  } catch(e) { console.error('Mgmt status error', e); }
+}
+
+// ── Management: Comparison ───────────────────────────
+async function loadComparison() {
+  try {
+    const r = await fetch(`${API}/management/comparison`);
+    const d = await r.json();
+    document.getElementById('rl-efficiency').textContent = d.overall.signal_efficiency_pct + '%';
+
+    const labels = [];
+    const rlData = [];
+    const ruleData = [];
+    d.comparison.forEach(j => {
+      j.periods.forEach(p => {
+        labels.push(`J${j.junction} ${p.period.substring(0,3)}`);
+        rlData.push(p.avg_rl_signal);
+        ruleData.push(p.avg_rule_signal);
+      });
+    });
+
+    if (comparisonChart) comparisonChart.destroy();
+    comparisonChart = new Chart(document.getElementById('comparisonChart'), {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [
+          { label: 'RL Policy', data: rlData, backgroundColor: 'rgba(57,198,184,.65)', borderColor: '#39c6b8', borderWidth: 1, borderRadius: 4 },
+          { label: 'Rule-Based', data: ruleData, backgroundColor: 'rgba(239,106,103,.45)', borderColor: '#ef6a67', borderWidth: 1, borderRadius: 4 }
+        ]
+      },
+      options: {
+        ...chartOpts('Signal (s)'),
+        plugins: {
+          legend: { display: true, position: 'top', labels: { color: '#93a4b5', font: { family: 'Space Mono', size: 10 }, boxWidth: 12, padding: 12 } },
+          tooltip: { backgroundColor: '#151d26', borderColor: '#263241', borderWidth: 1, titleFont: { family: 'Space Mono', size: 11 }, bodyFont: { family: 'Space Mono', size: 12 } }
+        }
+      }
+    });
+  } catch(e) { console.error('Comparison error', e); }
+}
+
+// ── Management: Policy Heatmap ───────────────────────
+async function loadPolicyHeatmap() {
+  try {
+    const j = document.getElementById('policy-junc-select').value;
+    const r = await fetch(`${API}/management/policy_heatmap?junction=${j}`);
+    const d = await r.json();
+
+    const lookup = {};
+    d.forEach(c => { lookup[`${c.hour}-${c.day}`] = c; });
+
+    const grid = document.getElementById('policy-heatmap-grid');
+    grid.innerHTML = '';
+
+    grid.appendChild(makeEl('div','hm-header',''));
+    DAYS.forEach(day => grid.appendChild(makeEl('div','hm-header',day)));
+
+    for (let h = 0; h < 24; h++) {
+      grid.appendChild(makeEl('div','hm-label', h + 'h'));
+      for (let day = 0; day < 7; day++) {
+        const c = lookup[`${h}-${day}`] || { rl_signal: 25, management_action: 'Normal', predicted_vehicles: 0 };
+        const cell = document.createElement('div');
+        cell.className = 'hm-cell';
+        cell.style.background = policyHeatColor(c.rl_signal);
+        cell.title = `J${j} ${DAYS[day]} ${h}:00 — RL: ${c.rl_signal}s · Rule: ${c.rule_signal}s · ${c.management_action} · ${c.predicted_vehicles} veh`;
+        grid.appendChild(cell);
+      }
+    }
+  } catch(e) { console.error('Policy heatmap error', e); }
+}
+
+function policyHeatColor(signal) {
+  if (signal <= 15) return 'rgba(57,198,184,.45)';
+  if (signal <= 25) return 'rgba(57,198,184,.75)';
+  if (signal <= 35) return 'rgba(66,201,131,.65)';
+  if (signal <= 50) return 'rgba(244,183,64,.65)';
+  return 'rgba(239,106,103,.7)';
+}
+
+// ── Management: Reward Chart ─────────────────────────
+function loadRewardChart(rewardSample) {
+  if (rewardChart) rewardChart.destroy();
+  const labels = rewardSample.map((_, i) => i * Math.round(800 / rewardSample.length));
+  rewardChart = new Chart(document.getElementById('rewardChart'), {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        label: 'Episode Reward',
+        data: rewardSample,
+        borderColor: '#39c6b8',
+        backgroundColor: 'rgba(57,198,184,.1)',
+        tension: 0.3,
+        pointRadius: 1,
+        fill: true,
+        borderWidth: 2
+      }]
+    },
+    options: {
+      ...chartOpts('Reward'),
+      plugins: {
+        legend: { display: false },
+        tooltip: { backgroundColor: '#151d26', borderColor: '#263241', borderWidth: 1, titleFont: { family: 'Space Mono', size: 11 }, bodyFont: { family: 'Space Mono', size: 12 } }
+      }
+    }
+  });
+}
+
 // ── Init ──────────────────────────────────────────────
 loadStats();
 loadJunctionTrend();
 loadDailyPattern();
 loadHeatmap();
 syncSelectedJunction();
+loadManagementStatus();
+loadComparison();
+loadPolicyHeatmap();
 </script>
 </body>
 </html>
