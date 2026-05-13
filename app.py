@@ -327,7 +327,7 @@ class QLearningTrafficManager:
 
 
 # Train the RL agent
-rl_manager = QLearningTrafficManager(n_junctions=4, alpha=0.1, gamma=0.95, epsilon=0.15, episodes=800)
+rl_manager = QLearningTrafficManager(n_junctions=4, alpha=0.1, gamma=0.95, epsilon=0.15, episodes=400)
 rl_manager.train(df)
 
 # ── Routes ────────────────────────────────────────────────────────
@@ -472,10 +472,20 @@ def management_recommend():
 def management_policy_heatmap():
     """Return the RL-recommended signal durations as a heatmap (hour × day) per junction."""
     junction = int(request.args.get("junction", 1)) - 1
-    result = []
+    
+    # Batch predict all 168 combinations (24 hours * 7 days)
+    scenarios = []
     for hour in range(24):
         for day in range(7):
-            pred_v = float(rf.predict([[junction, hour, day]])[0])
+            scenarios.append([junction, hour, day])
+    
+    all_preds = rf.predict(scenarios)
+    
+    result = []
+    idx = 0
+    for hour in range(24):
+        for day in range(7):
+            pred_v = float(all_preds[idx])
             rec = rl_manager.get_recommendation(junction, hour, day, pred_v)
             rule_sig = signal_time(pred_v)
             result.append({
@@ -487,12 +497,32 @@ def management_policy_heatmap():
                 'priority_score': rec['priority_score'],
                 'predicted_vehicles': round(pred_v, 1)
             })
+            idx += 1
     return jsonify(result)
 
 
 @app.route("/api/management/comparison")
 def management_comparison():
     """Compare RL policy vs rule-based across all junctions and time periods."""
+    # Pre-calculate all predictions in one batch to avoid slow loops
+    # 4 junctions * 24 hours * 7 days = 672 predictions
+    all_scenarios = []
+    for j in range(4):
+        for hour in range(24):
+            for day in range(7):
+                all_scenarios.append([j, hour, day])
+    
+    all_preds = rf.predict(all_scenarios)
+    
+    # Map predictions back to (j, hour, day)
+    pred_map = {}
+    idx = 0
+    for j in range(4):
+        for hour in range(24):
+            for day in range(7):
+                pred_map[(j, hour, day)] = all_preds[idx]
+                idx += 1
+
     comparison = []
     total_rl = 0
     total_rule = 0
@@ -502,12 +532,12 @@ def management_comparison():
         junction_data = {'junction': j + 1, 'periods': []}
         for hb_idx, (hb_name) in enumerate(rl_manager.HOUR_BUCKET_NAMES):
             hb_lo, hb_hi = rl_manager.HOUR_BUCKETS[hb_idx]
-            # Average over hours in bucket and all days
+            
             rl_signals = []
             rule_signals = []
             for hour in range(hb_lo, hb_hi):
                 for day in range(7):
-                    pred_v = float(rf.predict([[j, hour, day]])[0])
+                    pred_v = float(pred_map[(j, hour, day)])
                     rec = rl_manager.get_recommendation(j, hour, day, pred_v)
                     rl_signals.append(rec['optimal_signal_seconds'])
                     rule_signals.append(signal_time(pred_v))
