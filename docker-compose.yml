@@ -1,0 +1,30 @@
+services:
+
+  # ── ML Backend (Flask + scikit-learn) ────────────────
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: trafficiq-backend
+    ports:
+      - "5000:5000"
+    environment:
+      - FLASK_ENV=production
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5000/health', timeout=5).read()"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ── Frontend (Nginx static) ───────────────────────────
+  frontend:
+    image: nginx:alpine
+    container_name: trafficiq-frontend
+    ports:
+      - "8080:80"
+    volumes:
+      - ./index.html:/usr/share/nginx/html/index.html:ro
+    depends_on:
+      - backend
+    restart: unless-stopped
