@@ -21,11 +21,8 @@ User → Nginx (port 8080) → Static Dashboard
 ### Prerequisites
 - Docker Desktop installed and running
 
-### Run with Docker Compose
+### Run with Docker Compose (Recommended)
 ```bash
-# Clone / unzip the project
-cd traffic-ui
-
 # Build and start both services
 docker-compose up --build
 
@@ -34,9 +31,23 @@ docker-compose up --build
 # API       → http://localhost:5000/api/stats
 ```
 
-### Stop
+### Stop Docker
 ```bash
 docker-compose down
+```
+
+### Run Locally (Without Docker)
+```bash
+# 1. Install dependencies
+pip install -r requirements.txt
+
+# 2. Pre-train the models (Creates models/ directory)
+python train.py
+
+# 3. Start the Flask server
+python app.py
+
+# Dashboard → http://localhost:5000
 ```
 
 ## API Endpoints
